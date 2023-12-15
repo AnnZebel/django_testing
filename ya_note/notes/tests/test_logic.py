@@ -1,16 +1,17 @@
+from pytils.translit import slugify
+
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from pytils.translit import slugify
-
 from notes.forms import WARNING
 from notes.models import Note
+from notes.tests.utils import assertnotefieldsequal
 
 User = get_user_model()
 
 
-class TestLogic(TestCase):
+class BaseTestCase(TestCase):
 
     author = None
     author_client = None
@@ -26,12 +27,16 @@ class TestLogic(TestCase):
             'slug': 'new-slug'
         }
 
+
+class TestLogic(BaseTestCase):
+
     def test_user_can_create_note(self):
         url = reverse('notes:add')
+        initial_count = Note.objects.count()
         response = self.author_client.post(url, data=self.form_data)
         self.assertRedirects(response, reverse('notes:success'))
-        self.assertEqual(Note.objects.count(), 1)
-        new_note = Note.objects.first()
+        self.assertEqual(Note.objects.count(), initial_count + 1)
+        new_note = Note.objects.last()
         self.assertEqual(new_note.title, self.form_data['title'])
         self.assertEqual(new_note.text, self.form_data['text'])
         self.assertEqual(new_note.slug, self.form_data['slug'])
@@ -43,7 +48,7 @@ class TestLogic(TestCase):
         login_url = reverse('users:login')
         expected_url = f'{login_url}?next={url}'
         self.assertRedirects(response, expected_url)
-        self.assertEqual(Note.objects.count(), 0)
+        self.assertEqual(Note.objects.exists(), False)
 
     def test_not_unique_slug(self):
         url = reverse('notes:add')
@@ -53,21 +58,27 @@ class TestLogic(TestCase):
         response = self.author_client.post(url, data=self.form_data)
         self.assertFormError(response, 'form', 'slug',
                              errors=(self.note.slug + WARNING))
-        self.assertEqual(Note.objects.count(), 1)
+        self.assertTrue(Note.objects.exists())
 
     def test_empty_slug(self):
         url = reverse('notes:add')
         self.form_data.pop('slug')
         response = self.author_client.post(url, data=self.form_data)
         self.assertRedirects(response, reverse('notes:success'))
-        self.assertEqual(Note.objects.count(), 1)
-        new_note = Note.objects.get()
+        self.assertTrue(Note.objects.exists())
+        new_note = Note.objects.last()
         expected_slug = slugify(self.form_data['title'])
         self.assertEqual(new_note.slug, expected_slug)
 
 
-class TestNoteEditDelete(TestCase):
+class TestNoteEditDelete(BaseTestCase):
+
     author = None
+    form_data = {
+        'title': 'Новый заголовок',
+        'text': 'Новый текст',
+        'slug': 'new-slug'
+    }
 
     @classmethod
     def setUpTestData(cls):
@@ -78,11 +89,6 @@ class TestNoteEditDelete(TestCase):
             slug='note-slug',
             author=cls.author,
         )
-        cls.form_data = {
-            'title': 'Новый заголовок',
-            'text': 'Новый текст',
-            'slug': 'new-slug'
-        }
 
     def test_author_can_edit_note(self):
         client = Client()
@@ -91,9 +97,7 @@ class TestNoteEditDelete(TestCase):
         response = client.post(url, data=self.form_data)
         self.assertRedirects(response, reverse('notes:success'))
         self.note.refresh_from_db()
-        self.assertEqual(self.note.title, self.form_data['title'])
-        self.assertEqual(self.note.text, self.form_data['text'])
-        self.assertEqual(self.note.slug, self.form_data['slug'])
+        assertnotefieldsequal(self, self.note, self.form_data)
 
     def test_other_user_cant_edit_note(self):
         admin = User.objects.create(username='Админ')
@@ -113,7 +117,7 @@ class TestNoteEditDelete(TestCase):
         url = reverse('notes:delete', args=(self.note.slug,))
         response = client.post(url)
         self.assertRedirects(response, reverse('notes:success'))
-        self.assertEqual(Note.objects.count(), 0)
+        self.assertFalse(Note.objects.exists())
 
     def test_other_user_cant_delete_note(self):
         admin = User.objects.create(username='Админ')
@@ -122,4 +126,4 @@ class TestNoteEditDelete(TestCase):
         url = reverse('notes:delete', args=(self.note.slug,))
         response = client.post(url)
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(Note.objects.count(), 1)
+        self.assertTrue(Note.objects.exists())

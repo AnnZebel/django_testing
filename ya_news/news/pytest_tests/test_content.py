@@ -4,13 +4,15 @@ from django.urls import reverse
 
 from news.models import Comment, News
 
+from news import forms
+
 
 @pytest.mark.django_db
 def test_home_page(client, create_news):
     url = reverse('news:home')
     response = client.get(url)
     assert response.status_code == 200
-    assert (len(response.context['object_list'])
+    assert (response.context['object_list'].count()
             == settings.NEWS_COUNT_ON_HOME_PAGE)
 
 
@@ -31,7 +33,12 @@ def test_detail_page(client, create_comments):
     response = client.get(url)
     assert response.status_code == 200
     assert 'news' in response.context
-    assert len(response.context['news'].comment_set.all()) == 2
+    comments = (response.context['news'].comment_set.all()
+                .order_by('created'))
+    assert len(comments) == 2
+    # Дополнительная проверка порядка комментариев
+    assert comments[0].created < comments[1].created
+    # assert len(response.context['news'].comment_set.all()) == 2
 
 
 @pytest.mark.django_db
@@ -51,3 +58,4 @@ def test_authorized_client_has_form(client, create_comments):
     client.force_login(author)
     response = client.get(url)
     assert 'form' in response.context
+    assert isinstance(response.context['form'], forms.CommentForm)

@@ -1,13 +1,12 @@
-from datetime import datetime, timedelta
-
 import pytest
 from django.conf import settings
 from django.urls import reverse
 from django.test import Client
-
-from news.forms import BAD_WORDS
 from django.utils import timezone
+from django.utils.timezone import timedelta
+
 from news.models import Comment, News
+from news.pytest_tests.constans import COMMENT_TEXT
 
 
 @pytest.fixture
@@ -26,17 +25,17 @@ def reader(django_user_model):
 
 
 @pytest.fixture
-def comment(news, author, comment_text):
+def comment(news, author):
     return Comment.objects.create(
         news=news,
         author=author,
-        text=comment_text
+        text=COMMENT_TEXT
     )
 
 
 @pytest.fixture
 def create_news():
-    today = datetime.today()
+    today = timezone.now()
     all_news = [
         News(
             title=f'Новость {index}',
@@ -76,26 +75,6 @@ def auth_client(user):
     client = Client()
     client.force_login(user)
     return client
-
-
-@pytest.fixture
-def comment_text():
-    return 'Текст комментария'
-
-
-@pytest.fixture
-def form_data(comment_text):
-    return {'text': comment_text}
-
-
-@pytest.fixture
-def new_form_data():
-    return {'text': 'Обновленный комментарий'}
-
-
-@pytest.fixture
-def bad_words_data():
-    return {'text': f'Какой-то текст, {BAD_WORDS[0]}, еще текст'}
 
 
 @pytest.fixture
