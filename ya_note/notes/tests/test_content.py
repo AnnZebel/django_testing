@@ -4,6 +4,8 @@ from django.urls import reverse_lazy
 
 from notes.models import Note
 from notes import forms
+from notes.tests.test_logic import BaseTestCase
+from notes.tests.constans import TITLE_NOTE, TEXT_NOTE, SLUG_NOTE
 
 User = get_user_model()
 
@@ -11,7 +13,7 @@ USERNAME = 'testuser'
 SECOND_USERNAME = 'testuser1'
 
 
-class TestContent(TestCase):
+class TestContent(BaseTestCase, TestCase):
 
     user = None
 
@@ -20,8 +22,8 @@ class TestContent(TestCase):
         cls.client = Client()
         cls.user = User.objects.create(username=USERNAME)
         cls.second_user = User.objects.create(username=SECOND_USERNAME)
-        cls.note = Note.objects.create(title='Заголовок', text='Текст',
-                                       slug='note-slug',
+        cls.note = Note.objects.create(title=TITLE_NOTE, text=TEXT_NOTE,
+                                       slug=SLUG_NOTE,
                                        author=cls.user)
 
     def setUp(self):

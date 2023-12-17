@@ -3,7 +3,6 @@ from django.conf import settings
 from django.urls import reverse
 
 from news.models import Comment, News
-
 from news import forms
 
 
@@ -33,12 +32,11 @@ def test_detail_page(client, create_comments):
     response = client.get(url)
     assert response.status_code == 200
     assert 'news' in response.context
-    comments = (response.context['news'].comment_set.all()
-                .order_by('created'))
-    assert len(comments) == 2
-    # Дополнительная проверка порядка комментариев
-    assert comments[0].created < comments[1].created
-    # assert len(response.context['news'].comment_set.all()) == 2
+    comments_count = response.context['news'].comment_set.count()
+    assert comments_count == 2
+    comments = response.context['news'].comment_set.all().order_by('created')
+    for i in range(comments_count - 1):
+        assert comments[i].created < comments[i + 1].created
 
 
 @pytest.mark.django_db

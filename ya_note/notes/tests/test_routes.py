@@ -5,12 +5,12 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from notes.models import Note
-
+from notes.tests.test_logic import BaseTestCase
 
 User = get_user_model()
 
 
-class TestRoutes(TestCase):
+class TestRoutes(BaseTestCase, TestCase):
     user = None
     user_client = None
 
