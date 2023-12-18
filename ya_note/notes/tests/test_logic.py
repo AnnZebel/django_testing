@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
-
 from pytils.translit import slugify
 
 from notes.forms import WARNING
@@ -65,7 +64,6 @@ class TestLogic(BaseTestCase):
         self.form_data.pop('slug')
         response = self.author_client.post(url, data=self.form_data)
         self.assertRedirects(response, reverse('notes:success'))
-        self.assertTrue(Note.objects.exists())
         new_note = Note.objects.last()
         expected_slug = slugify(self.form_data['title'])
         self.assertEqual(new_note.slug, expected_slug)
@@ -74,20 +72,10 @@ class TestLogic(BaseTestCase):
 class TestNoteEditDelete(BaseTestCase):
 
     author = None
-    form_data = {
-        'title': 'Новый заголовок',
-        'text': 'Новый текст',
-        'slug': 'new-slug'
-    }
-
-    def assert_note_attribut_esequal(self, note1, note2):
-        self.assertEqual(note1.title, note2.title)
-        self.assertEqual(note1.text, note2.text)
-        self.assertEqual(note1.slug, note2.slug)
 
     @classmethod
     def setUpTestData(cls):
-        cls.author = User.objects.create(username='Автор')
+        super().setUpTestData()
         cls.note = Note.objects.create(
             title='Заголовок',
             text='Текст заметки',
@@ -112,7 +100,7 @@ class TestNoteEditDelete(BaseTestCase):
         response = client.post(url, data=self.form_data)
         self.assertEqual(response.status_code, 404)
         note_from_db = Note.objects.get(id=self.note.id)
-        self.assert_note_attribut_esequal(self.note, note_from_db)
+        assert_note_fields_equal(self, self.note, note_from_db, is_dict=False)
 
     def test_author_can_delete_note(self):
         client = Client()

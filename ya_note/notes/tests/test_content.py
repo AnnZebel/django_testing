@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client
 from django.urls import reverse_lazy
 
 from notes.models import Note
@@ -13,12 +13,13 @@ USERNAME = 'testuser'
 SECOND_USERNAME = 'testuser1'
 
 
-class TestContent(BaseTestCase, TestCase):
+class TestContent(BaseTestCase):
 
     user = None
 
     @classmethod
     def setUpTestData(cls):
+        super().setUpTestData()
         cls.client = Client()
         cls.user = User.objects.create(username=USERNAME)
         cls.second_user = User.objects.create(username=SECOND_USERNAME)

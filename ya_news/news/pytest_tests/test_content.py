@@ -32,11 +32,10 @@ def test_detail_page(client, create_comments):
     response = client.get(url)
     assert response.status_code == 200
     assert 'news' in response.context
-    comments_count = response.context['news'].comment_set.count()
-    assert comments_count == 2
     comments = response.context['news'].comment_set.all().order_by('created')
-    for i in range(comments_count - 1):
-        assert comments[i].created < comments[i + 1].created
+    assert comments.count() == 2
+    sorted_comments = sorted(comments, key=lambda comment: comment.created)
+    assert sorted_comments == list(comments)
 
 
 @pytest.mark.django_db
